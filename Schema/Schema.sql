@@ -9,3 +9,13 @@ CREATE TABLE IF NOT EXISTS thebestdbever.shift
 
     PRIMARY KEY (SSN)
 );
+
+CREATE TABLE IF NOT EXISTS thebestdbever.shift
+(
+    ShiftID serial NOT NULL,
+    Date date NOT NULL,
+    StartTime time NOT NULL,
+    Duration interval NOT NULL,
+
+    PRIMARY KEY (ShiftID)
+);
