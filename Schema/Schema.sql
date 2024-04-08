@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS thebestdbever.employee
 DROP TABLE IF EXISTS thebestdbever.works_on_shift;
 CREATE TABLE works_on_shift
 (
-    shiftid        int        NOT NULL
+    shiftid        SERIAL        NOT NULL
         CONSTRAINT wos_shift___fk
             REFERENCES shift
             ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -59,3 +59,15 @@ CREATE TABLE works_on_shift
         PRIMARY KEY (shiftid, ssn)
 );
 
+DROP TABLE IF EXISTS thebestdbever.customer;
+CREATE TABLE customer
+(
+    CustomerID SERIAL NOT NULL,
+    LastName varchar(255) NOT NULL ,
+    FirstName varchar(255),
+    PhoneNumber varchar(11) NOT NULL,
+    Comment varchar(255),
+    VIP bool,
+
+    PRIMARY KEY (CustomerID)
+);
