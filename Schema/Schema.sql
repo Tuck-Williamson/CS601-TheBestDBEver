@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS thebestdbever.shift
     PRIMARY KEY (ShiftID)
 );
 
+-- UPDATE WOS TRIGGER IF POSITIONS ARE ADDED
 DROP TYPE IF EXISTS thebestdbever.position CASCADE;
 CREATE TYPE position AS ENUM (
     'Roast Chef',
@@ -57,6 +58,58 @@ CREATE TABLE works_on_shift
     HeadPosition thebestdbever.position,
     PRIMARY KEY (shiftid, ssn)
 );
+
+create function wos_get_filled_positions(sId int) returns thebestdbever.position[]
+as
+$$
+begin
+    RETURN (SELECT works_on_shift.HeadPosition FROM works_on_shift where shiftid = sId);
+end;
+$$;
+
+CREATE OR REPLACE FUNCTION wos_trigger_check_all_pos_filled()
+    RETURNS TRIGGER AS
+$wos_trigger_check_all_pos_filled$
+DECLARE
+    new_pos    thebestdbever.position;
+    filled_pos thebestdbever.position[];
+    -- These are position subtype arrays.
+    -- The canonical HeadPosition for each subtype is the first value in the array.
+    chefs      thebestdbever.position[] = array ['Roast Chef', 'Sous Chef', 'Pastry Chef', 'Executive Chef'];
+    waiters      thebestdbever.position[] = array ['Sommelier', 'Runner', 'Captain', 'Waiter', 'Busboy', 'Back Waiter'];
+    bartenders      thebestdbever.position[] = array ['Bartender', 'Barback'];
+BEGIN
+    RAISE NOTICE 'Begin: Works On Shift Trigger- check all positions filled.';
+    IF NEW.HeadPosition IS NULL THEN
+        -- Store the new data's position, then load all filled positions.
+        SELECT thebestdbever.employee.pos into new_pos FROM thebestdbever.employee WHERE ssn = NEW.ssn LIMIT 1;
+        filled_pos = wos_get_filled_positions(sId := NEW.shiftid);
+
+        -- Check to see if this position already has a head. If not then make this employee the head.
+        CASE new_pos
+            WHEN new_pos IN (chefs) AND chefs[0] NOT IN (filled_pos) THEN
+                -- Chefs doesn't have a head - set the new row's HeadPosition to the canonical value for chefs.
+                -- The canonical value is why we can just check chefs[0] NOT IN (filled_pos) instead of each
+                -- item in filled_pos against chefs.
+                NEW.HeadPosition := chefs[0];
+            WHEN new_pos IN (waiters) AND waiters[0] NOT IN (filled_pos) THEN
+                NEW.HeadPosition := waiters[0];
+            WHEN new_pos IN (bartenders) AND bartenders[0] NOT IN (filled_pos) THEN
+                NEW.HeadPosition := bartenders[0];
+            WHEN new_pos NOT IN (filled_pos) THEN
+                -- We can just check against filled_pos because the rest of the positions don't have sub-specialties
+                NEW.HeadPosition := new_pos;
+            END CASE;
+    END IF;
+
+    RAISE NOTICE 'End: Works On Shift Trigger - check all positions filled.';
+    RETURN NEW;
+END ;
+$wos_trigger_check_all_pos_filled$ LANGUAGE plpgsql;
+
+CREATE TRIGGER wos_trigger_check_wos
+    BEFORE INSERT ON works_on_shift
+    FOR EACH ROW EXECUTE FUNCTION wos_trigger_check_all_pos_filled();
 
 DROP TABLE IF EXISTS thebestdbever.customer;
 CREATE TABLE customer
