@@ -284,14 +284,14 @@ COMMIT;
 
 
 -- CHECK wos constraints working correctly.
-INSERT INTO works_on_shift
-VALUES (1, '538578111', NULL)
-RETURNING "HeadPosition" IS NULL;
+INSERT INTO works_on_shift VALUES (1, '538578111', 'Back Waiter') RETURNING HeadPosition;
+INSERT INTO works_on_shift VALUES (1, (SELECT ssn FROM employee LIMIT 1 OFFSET 2), NULL) RETURNING HeadPosition;
+INSERT INTO works_on_shift VALUES (1, (SELECT ssn FROM employee LIMIT 1 OFFSET 3), NULL) RETURNING HeadPosition;
 
--- INSERT
--- INTO works_on_shift
--- VALUES (((SELECT shiftid FROM shift LIMIT 1), (SELECT ssn FROM employee LIMIT 1), NULL));
+DELETE FROM works_on_shift WHERE shiftid = 1 AND ssn = '538578111';
 
+SELECT 'Hosts' as pos WHERE NOT 'Hosts' = ANY ('{"Bob", "Tom"}');
+SELECT 'Hosts' as pos WHERE NOT 'Hosts' IN (SELECT * FROM unnest(ARRAY ['Hosts','Barback']));
 
 ------------------------------
 -- works_on_shift
