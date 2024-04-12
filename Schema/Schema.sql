@@ -153,25 +153,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- From our requirements document this addresses business requirement in 2.I, 2.II
+-- From our requirements document this addresses business requirements in 2.I, 2.II
 CREATE OR REPLACE FUNCTION wos_trigger_check_pos_filled()
     RETURNS TRIGGER AS
 $wos_trigger_check_all_pos_filled$
 DECLARE
     new_pos           thebestdbever.position;
-    sommelierRequired bool;
+    sommelierRequired bool := TRUE;
 BEGIN
 --     RAISE NOTICE 'Begin %: Works On Shift Trigger- check all positions filled.', tg_name;
     IF NEW.HeadPosition IS NULL THEN
         -- We get the position from the employee ssn; however, for sub-specialties
         --  we make one of them 'cannon' that stand for all the sub-specialties in
         --  each parent specialty.
+
+        SELECT time_ge(starttime, '16:00') as sReq INTO sommelierRequired FROM thebestdbever.shift WHERE shiftid = NEW.shiftid;
         new_pos :=
                 wos_canon_pos(cast((SELECT e.pos
                                     FROM thebestdbever.employee as e
                                     WHERE e.ssn = NEW.ssn
                                     LIMIT 1) as thebestdbever.position),
-                              FALSE);
+                              sommelierRequired);
 
         -- We check if the position already is filled.
         --  If so we don't need to make this one the HeadPosition otherwise just set HeadPosition
