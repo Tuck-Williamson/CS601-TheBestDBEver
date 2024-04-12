@@ -14,3 +14,9 @@ SELECT *
     WHERE e.pos = 'Sommelier' AND headposition <> e.pos
     LIMIT 20;
 
+SELECT wos.shiftid, COUNT(DISTINCT headposition) as filledPos FROM works_on_shift as wos
+         INNER JOIN thebestdbever.shift s ON s.shiftid = wos.shiftid
+         INNER JOIN thebestdbever.employee e ON e.ssn = wos.ssn
+        GROUP BY wos.shiftid
+LIMIT 20
+;

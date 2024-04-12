@@ -158,30 +158,39 @@ CREATE OR REPLACE FUNCTION wos_trigger_check_pos_filled()
     RETURNS TRIGGER AS
 $wos_trigger_check_all_pos_filled$
 DECLARE
-    new_pos           thebestdbever.position;
+    -- This is the employee's current position
+    empPos           thebestdbever.Position;
+    -- This is the canon position for the employee's position.
+    canonPos         thebestdbever.Position;
+    -- THIS IS THE TIME CUTOFF FOR SOMMELIER REQUIRED!
+    minShiftTimeForSomReq shift.starttime%type := '16:00';
     sommelierRequired bool := TRUE;
 BEGIN
 --     RAISE NOTICE 'Begin %: Works On Shift Trigger- check all positions filled.', tg_name;
+    SELECT time_ge(starttime, minShiftTimeForSomReq) INTO sommelierRequired FROM thebestdbever.shift WHERE shiftid = NEW.shiftid;
+    SELECT e.pos INTO empPos FROM thebestdbever.employee as e WHERE e.ssn = NEW.ssn LIMIT 1;
+    canonPos := wos_canon_pos(empPos, sommelierRequired);
+
     IF NEW.HeadPosition IS NULL THEN
         -- We get the position from the employee ssn; however, for sub-specialties
         --  we make one of them 'cannon' that stand for all the sub-specialties in
         --  each parent specialty.
 
-        SELECT time_ge(starttime, '16:00') as sReq INTO sommelierRequired FROM thebestdbever.shift WHERE shiftid = NEW.shiftid;
-        new_pos :=
-                wos_canon_pos(cast((SELECT e.pos
-                                    FROM thebestdbever.employee as e
-                                    WHERE e.ssn = NEW.ssn
-                                    LIMIT 1) as thebestdbever.position),
-                              sommelierRequired);
-
         -- We check if the position already is filled.
         --  If so we don't need to make this one the HeadPosition otherwise just set HeadPosition
-        IF new_pos NOT IN
+        IF canonPos NOT IN
            (SELECT DISTINCT works_on_shift.HeadPosition FROM works_on_shift WHERE shiftid = NEW.shiftid) THEN
             RAISE NOTICE '::% - Setting employee as HeadPosition for shift. Data: %', tg_name, NEW;
-            NEW.HeadPosition = new_pos;
+            NEW.HeadPosition = canonPos;
         END IF;
+    ELSEIF NEW.headposition <> canonPos AND NEW.headposition <> empPos THEN
+        -- User entered invalid headposition value that isn't even of the employees position type.
+        RAISE EXCEPTION 'Headposition(%) does not match employee position(%) or parent type(%) of employee position',
+            NEW.headposition, empPos, canonPos;
+    ELSEIF NEW.headposition <> canonPos THEN
+        RAISE WARNING 'Headposition(%) changed to canon position(%) for the subtype of %.',
+            NEW.headposition, canonPos, empPos;
+        NEW.headposition := canonPos;
     END IF;
 
 --     RAISE NOTICE 'End %: Works On Shift Trigger - check all positions filled.', tg_name;
@@ -191,7 +200,7 @@ $wos_trigger_check_all_pos_filled$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE TRIGGER wos_trigger_check_wos_insert
-    BEFORE INSERT
+    BEFORE INSERT OR UPDATE
     ON works_on_shift
     FOR EACH ROW
 EXECUTE FUNCTION wos_trigger_check_pos_filled();
