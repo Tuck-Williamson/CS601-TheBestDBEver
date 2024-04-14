@@ -2,9 +2,9 @@
 
 This is the shared project for "TheBestDBEver" group.
 
-## Requirements Document
+## Requirements Documents
 
-### Phase 2
+[PDF of Phase 1](<Documentation/601- DB Project - The Best DB Ever.pdf>)
 [PDF of Phase 2](<Documentation/601- DB Project - The Best DB Ever - Phase Two.pdf>)
 
 ## Relational Model
