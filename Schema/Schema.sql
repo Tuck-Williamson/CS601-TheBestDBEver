@@ -72,6 +72,39 @@ CREATE TABLE customer
     PRIMARY KEY (CustomerID)
 );
 
+-- Create ORDER_ITEM Table
+DROP TABLE IF EXISTS thebestdbever.order_item;
+CREATE TABLE order_item
+(
+    OrderID SERIAL NOT NULL,
+    Quantity INT NOT NULL,
+    ItemID SERIAL NOT NULL,
+    Time TIME,
+    TopID SERIAL NOT NULL,
+    ResID SERIAL NOT NULL,
+    WaitedOn thebestdbever.position NOT NULL,
+    ShiftID SERIAL NOT NULL,
+
+    PRIMARY KEY (OrderID)
+);
+
+
+-- Create MENU_ITEM Table
+DROP TABLE IF EXISTS thebestdbever.menu_item;
+CREATE TABLE menu_item
+(
+    ItemID SERIAL NOT NULL,
+    Title varchar(255) NOT NULL,
+    Description varchar(255),
+    Active BOOLEAN NOT NULL,
+    Type varchar(255),
+    Allergens varchar(255),
+    Price NUMERIC NOT NULL,
+    Quantity INT,
+
+    PRIMARY KEY (ItemID)
+);
+
 DROP TABLE IF EXISTS thebestdbever.top;
 CREATE TABLE top
 (
