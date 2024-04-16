@@ -8,6 +8,6 @@ This is the shared project for "TheBestDBEver" group.
 
 [PDF of Phase 2](<Documentation/601- DB Project - The Best DB Ever - Phase Two.pdf>)
 
-## Relational Model
+## Logical Schema
 
 ![Model](Phase3-RelationalModel.drawio.png)
