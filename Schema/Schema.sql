@@ -44,6 +44,16 @@ CREATE TABLE IF NOT EXISTS thebestdbever.employee
     PRIMARY KEY (SSN)
 );
 
+DROP TYPE IF EXISTS thebestdbever.headPosition CASCADE;
+CREATE TYPE thebestdbever.headPosition AS ENUM (
+    'Head Chef',
+    'Head Hosts',
+    'Head Manager',
+    'Head Sommelier',
+    'Head Waiter',
+    'Head Bartender'
+    );
+
 DROP TABLE IF EXISTS thebestdbever.works_on_shift;
 CREATE TABLE works_on_shift
 (
@@ -55,7 +65,7 @@ CREATE TABLE works_on_shift
         CONSTRAINT wos_SSN___fk
             REFERENCES employee
             ON UPDATE CASCADE ON DELETE CASCADE,
-    HeadPosition thebestdbever.position,
+    HeadPosition thebestdbever.headPosition,
     PRIMARY KEY (shiftid, ssn)
 );
 
@@ -109,20 +119,17 @@ CREATE TABLE reservation
 
 
 DROP FUNCTION IF EXISTS wos_canon_pos;
--- This function gets the 'canonical' position from the given employee's position.
--- Making a single element of sub-specialities 'canon' just makes the checking
---  for HeadPositions easier.
+
+-- This function maps entries in the thebestdbever.position enum to
+--  the corresponding head position in thebestdbever.headposition enum.
 -- Param: sommelierRequired - should be True for evening shifts.
 CREATE OR REPLACE FUNCTION wos_canon_pos(empPos thebestdbever.position,
                                          sommelierRequired bool)
-    RETURNS thebestdbever.position
+    RETURNS thebestdbever.headPosition
 AS
 $$
 DECLARE
     -- These are position subtype arrays.
-    -- The canonical HeadPosition for each subtype is the first value in
-    --  the array. Because of this Sommelier cannot be the first one in
-    --  the waiter category.
     chefs          thebestdbever.Position[] = ARRAY ['Roast Chef', 'Sous Chef',
         'Pastry Chef', 'Executive Chef'];
     waiters        thebestdbever.Position[] = ARRAY ['Captain', 'Sommelier', 'Runner',
@@ -130,66 +137,95 @@ DECLARE
     waitersNoSomm  thebestdbever.Position[] = ARRAY ['Captain', 'Runner',
         'Waiter', 'Busboy', 'Back Waiter'];
     bartenders     thebestdbever.Position[] = ARRAY ['Bartender', 'Barback'];
+    -- Just default this as if sommelierRequired == FALSE, then change waitersToCheck
+    --  to refer to waitersNoSomm if sommelierRequired == TRUE.
     waitersToCheck thebestdbever.position[] := waiters;
 BEGIN
-    -- This is how we handle Sommelier differently
-    --  if sommelierRequired (it's a night shift).
+    -- If sommelierRequired (it's a night shift), so then we check against the
+    --  waitersNoSomm instead.
     IF sommelierRequired THEN
         waitersToCheck := waitersNoSomm;
-    end if;
+    END IF;
+
+    -- Return the item from the headposition enum that corresponds to the employee's
+    --  position which may be a sub-position (the first several tests are against
+    --  sub-position arrays.
     IF empPos = ANY (chefs) THEN
-        RETURN chefs[1];
+        RETURN 'Head Chef';
     ELSEIF empPos = ANY (waitersToCheck) THEN
-        RETURN waiters[1];
+        RETURN 'Head Waiter';
     ELSEIF empPos = ANY (bartenders) THEN
-        RETURN bartenders[1];
+        RETURN 'Head Bartender';
     ELSE
-        -- We can just check against filled_pos because the
-        --  rest of the positions don't have sub-specialties.
         -- This is the fall thru for Sommelier if sommelierRequired.
-        RETURN empPos;
+        -- The headPosition enum was constructed such that anything that doesn't have
+        --  sub-positions is just 'Head ' prefixing the position.
+        RETURN CONCAT('Head ', TEXT(empPos));
     END IF;
 END;
 $$ LANGUAGE plpgsql;
 
--- From our requirements document this addresses business requirements in 2.I, 2.II
+-- From our requirements document  this addresses business requirements in 2.I, 2.II
 CREATE OR REPLACE FUNCTION wos_trigger_check_pos_filled()
     RETURNS TRIGGER AS
 $wos_trigger_check_all_pos_filled$
 DECLARE
     -- This is the employee's current position
-    empPos           thebestdbever.Position;
-    -- This is the canon position for the employee's position.
-    canonPos         thebestdbever.Position;
+    empPos                thebestdbever.Position;
+    -- This is the head position from the headPosition enum for the employee's position.
+    headPos               thebestdbever.headPosition;
     -- THIS IS THE TIME CUTOFF FOR SOMMELIER REQUIRED!
     minShiftTimeForSomReq shift.starttime%type := '16:00';
-    sommelierRequired bool := TRUE;
+    sommelierRequired     bool                 := TRUE;
 BEGIN
---     RAISE NOTICE 'Begin %: Works On Shift Trigger- check all positions filled.', tg_name;
-    SELECT time_ge(starttime, minShiftTimeForSomReq) INTO sommelierRequired FROM thebestdbever.shift WHERE shiftid = NEW.shiftid;
-    SELECT e.pos INTO empPos FROM thebestdbever.employee as e WHERE e.ssn = NEW.ssn LIMIT 1;
-    canonPos := wos_canon_pos(empPos, sommelierRequired);
+    --     RAISE NOTICE 'Begin %: Works On Shift Trigger- check all positions filled.', tg_name;
+    SELECT time_ge(starttime, minShiftTimeForSomReq)
+        INTO sommelierRequired
+        FROM thebestdbever.shift
+        WHERE shiftid = NEW.shiftid;
+    SELECT e.pos INTO empPos FROM thebestdbever.employee AS e WHERE e.ssn = NEW.ssn LIMIT 1;
+    headPos := wos_canon_pos(empPos, sommelierRequired);
 
     IF NEW.HeadPosition IS NULL THEN
-        -- We get the position from the employee ssn; however, for sub-specialties
-        --  we make one of them 'cannon' that stand for all the sub-specialties in
-        --  each parent specialty.
-
-        -- We check if the position already is filled.
-        --  If so we don't need to make this one the HeadPosition otherwise just set HeadPosition
-        IF canonPos NOT IN
+        IF tg_op = 'UPDATE' AND OLD.headposition IS NOT NULL THEN
+            -- We want to allow the user to mark someone else as the head position. In order to allow this we see if
+            --  1. We are updating, not inserting
+            --  2. If updating and updating such that the OLD.headPosition <> NULL and NEW.headPosition = NULL then we
+            --     assume the user is about to assign someone else to this headPosition.
+            --     If we didn't do this check the only way to assign a different employee to a headPosition would be to
+            --     delete the current head from the shift and then set the headPosition by inserting a new employee or
+            --     updating someone already working on this shift.
+            -- Just let the update happen.
+            RETURN NEW;
+        ELSEIF headPos NOT IN
+            -- We check if the position already is filled.
+            --  If so we don't need to make this one the HeadPosition otherwise just set NEW.HeadPosition = headPos
            (SELECT DISTINCT works_on_shift.HeadPosition FROM works_on_shift WHERE shiftid = NEW.shiftid) THEN
             RAISE NOTICE '::% - Setting employee as HeadPosition for shift. Data: %', tg_name, NEW;
-            NEW.HeadPosition = canonPos;
+            NEW.HeadPosition = headPos;
         END IF;
-    ELSEIF NEW.headposition <> canonPos AND NEW.headposition <> empPos THEN
-        -- User entered invalid headposition value that isn't even of the employees position type.
-        RAISE EXCEPTION 'Headposition(%) does not match employee position(%) or parent type(%) of employee position',
-            NEW.headposition, empPos, canonPos;
-    ELSEIF NEW.headposition <> canonPos THEN
-        RAISE WARNING 'Headposition(%) changed to canon position(%) for the subtype of %.',
-            NEW.headposition, canonPos, empPos;
-        NEW.headposition := canonPos;
+    ELSE
+        IF NEW.headposition <> headPos AND NEW.headposition <> empPos THEN
+            -- User entered invalid headposition value that isn't even of the employee's position type.
+            RAISE EXCEPTION 'Headposition(%) does not match employee position(%) or parent type(%) of employee position',
+                NEW.headposition, empPos, headPos;
+        ELSEIF NEW.headposition <> headPos THEN
+            -- The position passed in isn't a headPosition but is a position.
+            RAISE WARNING 'Headposition(%) changed to canon position(%) for the subtype of %.',
+                NEW.headposition, headPos, empPos;
+            NEW.headposition := headPos;
+        END IF;
+        -- Make this separate so that if we correct the position, then it checks against the corrected value.
+        IF NEW.headposition AND (SELECT COUNT(works_on_shift.HeadPosition) AS alreadyThere
+                                     FROM works_on_shift
+                                     WHERE shiftid = NEW.shiftid
+                                       AND HeadPosition = NEW.headposition) > 0 THEN
+            -- There is already a head position assigned. Raise a warning then set the new data's headPosition to NULL
+            RAISE WARNING 'Headposition "%" already set for shift id: %. Setting new headposition to NULL.',
+                NEW.headposition, NEW.shiftid;
+            NEW.headposition := NULL;
+
+        END IF;
     END IF;
 
 --     RAISE NOTICE 'End %: Works On Shift Trigger - check all positions filled.', tg_name;
@@ -204,47 +240,70 @@ CREATE OR REPLACE TRIGGER wos_trigger_check_wos_insert
     FOR EACH ROW
 EXECUTE FUNCTION wos_trigger_check_pos_filled();
 
+
 ------------------------------------------------------
 -- Keep these at the bottom so any errors
 --  are printed last in the console.
 ------------------------------------------------------
 -- Code checks
-
 do
 $$
     DECLARE
         --Get the canon waiter, bartender, and chef
-        waitCanon thebestdbever.position;
-        barCanon  thebestdbever.position;
-        chefCanon thebestdbever.position;
+        waitCanon     thebestdbever.headPosition;
+        barCanon      thebestdbever.headPosition;
+        chefCanon     thebestdbever.headPosition;
+        allHeads      thebestdbever.headposition[];
+        checkAllHeads thebestdbever.headposition[];
     BEGIN
         RAISE NOTICE 'Beginning Test Cases.';
 
-        waitCanon := wos_canon_pos(empPos := 'Back Waiter', sommelierRequired := false);
+
+        -- Testing head position checking
+        waitCanon := wos_canon_pos(empPos := 'Back Waiter', sommelierRequired := FALSE);
         IF wos_canon_pos(empPos := 'Busboy', sommelierRequired := FALSE) <> waitCanon OR
            wos_canon_pos(empPos := 'Captain', sommelierRequired := FALSE) <> waitCanon OR
            wos_canon_pos(empPos := 'Runner', sommelierRequired := FALSE) <> waitCanon OR
            wos_canon_pos(empPos := 'Sommelier', sommelierRequired := FALSE) <> waitCanon OR
+           wos_canon_pos(empPos := 'Sommelier', sommelierRequired := TRUE) = waitCanon OR
            wos_canon_pos(empPos := 'Waiter', sommelierRequired := FALSE) <> waitCanon THEN
             RAISE EXCEPTION 'Waiter mapping incorrect.';
         ELSE
             RAISE NOTICE '::Waiters passed.';
         END IF;
 
-        barCanon := wos_canon_pos(empPos := 'Barback', sommelierRequired := false);
+        barCanon := wos_canon_pos(empPos := 'Barback', sommelierRequired := FALSE);
         IF wos_canon_pos(empPos := 'Bartender', sommelierRequired := FALSE) <> barCanon THEN
             RAISE EXCEPTION 'Bartender mapping incorrect.';
         ELSE
             RAISE NOTICE '::Bartenders passed.';
         END IF;
 
-        chefCanon := wos_canon_pos(empPos := 'Sous Chef', sommelierRequired := false);
+        chefCanon := wos_canon_pos(empPos := 'Sous Chef', sommelierRequired := FALSE);
         IF wos_canon_pos(empPos := 'Roast Chef', sommelierRequired := FALSE) <> chefCanon OR
            wos_canon_pos(empPos := 'Pastry Chef', sommelierRequired := FALSE) <> chefCanon OR
            wos_canon_pos(empPos := 'Executive Chef', sommelierRequired := FALSE) <> chefCanon THEN
             RAISE EXCEPTION 'Chef mapping incorrect.';
         ELSE
             RAISE NOTICE '::Chefs passed.';
+        END IF;
+
+        -- This is just to remind us if we make any changes update the trigger functions.
+        IF (SELECT ARRAY_LENGTH(ENUM_RANGE(NULL::thebestdbever.position), 1) AS num_pos) <> 14 THEN
+            RAISE EXCEPTION 'CHECK THE HEAD POSITION MAP FUNCTION INCLUDES ANY NEW POSITION TYPES AND UPDATE THIS CHECK.';
+        END IF;
+
+        allHeads := ENUM_RANGE(NULL::thebestdbever.headposition);
+        -- Make sure every head position type can be obtained.
+        checkAllHeads := ARRAY(SELECT DISTINCT wos_canon_pos(pos, FALSE) AS headpos
+                                   FROM UNNEST(ENUM_RANGE(NULL::thebestdbever.position)) AS pos);
+        checkAllHeads := ARRAY_APPEND(checkAllHeads, wos_canon_pos('Sommelier', TRUE));
+
+        -- This checks to be sure that the arrays are equal (like for a set).
+        IF checkAllHeads @> allHeads AND checkAllHeads <@ allHeads THEN
+            RAISE NOTICE '::All head positions check passed.';
+        ELSE
+            RAISE EXCEPTION 'Not all head positions can be accessed.';
         END IF;
 
         RAISE NOTICE 'Tests complete.';
