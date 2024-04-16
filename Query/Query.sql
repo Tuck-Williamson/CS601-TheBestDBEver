@@ -55,7 +55,7 @@ FROM (
          SELECT c.CustomerID, SUM(mi.Price * oi.Quantity) AS total_revenue
          FROM thebestdbever.customer c
                   JOIN thebestdbever.reservation r ON c.CustomerID = r.CustomerID
-                  JOIN thebestdbever.order_item oi ON r.ResID = oi.ResID
+                  JOIN thebestdbever.order_item oi ON r.reservationid = oi.ResID
                   JOIN thebestdbever.menu_item mi ON oi.ItemID = mi.ItemID
          WHERE r.Date BETWEEN 'start_date' AND 'end_date'
          GROUP BY c.CustomerID
@@ -74,7 +74,7 @@ ORDER BY ReservationCount DESC
 SELECT c.LastName, c.FirstName, SUM(mi.Price * oi.Quantity) AS TotalExpenditure
 FROM thebestdbever.customer c
          JOIN thebestdbever.reservation r ON c.CustomerID = r.CustomerID
-         JOIN thebestdbever.order_item oi ON r.ResID = oi.ResID
+         JOIN thebestdbever.order_item oi ON r.reservationid = oi.ResID
          JOIN thebestdbever.menu_item mi ON oi.ItemID = mi.ItemID
 GROUP BY c.LastName, c.FirstName
 ORDER BY TotalExpenditure DESC
