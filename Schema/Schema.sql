@@ -82,6 +82,23 @@ CREATE TABLE customer
     PRIMARY KEY (CustomerID)
 );
 
+
+-- Create MENU_ITEM Table
+DROP TABLE IF EXISTS thebestdbever.menu_item;
+CREATE TABLE menu_item
+(
+    ItemID SERIAL NOT NULL,
+    Title varchar(255) NOT NULL,
+    Description varchar(255),
+    Active BOOLEAN NOT NULL,
+    Type varchar(255),
+    Allergens varchar(255),
+    Price NUMERIC NOT NULL,
+    Quantity INT,
+
+    PRIMARY KEY (ItemID)
+);
+
 DROP TABLE IF EXISTS thebestdbever.top;
 CREATE TABLE top
 (
@@ -117,6 +134,50 @@ CREATE TABLE reservation
 
 );
 
+
+-- Create MENU_ITEM Table
+DROP TABLE IF EXISTS thebestdbever.menu_item;
+CREATE TABLE menu_item
+(
+    ItemID SERIAL NOT NULL,
+    Title varchar(255) NOT NULL,
+    Description varchar(255),
+    Active BOOLEAN NOT NULL,
+    Type varchar(255),
+    Allergens varchar(255),
+    Price NUMERIC NOT NULL,
+    Quantity INT,
+
+    PRIMARY KEY (ItemID)
+);
+
+-- Create ORDER_ITEM Table
+DROP TABLE IF EXISTS thebestdbever.order_item;
+CREATE TABLE order_item
+(
+    OrderID SERIAL NOT NULL,
+    Quantity INT NOT NULL,
+    ItemID INT NOT NULL,
+    Time TIME,
+    TopID INT NOT NULL
+        CONSTRAINT T_ID____FK
+            REFERENCES thebestdbever.top
+            ON UPDATE CASCADE ON DELETE CASCADE,
+    ResID INT NOT NULL
+        CONSTRAINT R_ID____FK
+            REFERENCES thebestdbever.reservation
+            ON UPDATE CASCADE ON DELETE CASCADE,
+    WaitedOn char(9) NOT NULL
+        CONSTRAINT W_ID____FK
+            REFERENCES thebestdbever.employee
+            ON UPDATE CASCADE ON DELETE CASCADE,
+    ShiftID INT NOT NULL,
+
+    PRIMARY KEY (OrderID),
+    FOREIGN KEY (ItemID) REFERENCES thebestdbever.menu_item(ItemId)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (ShiftID) REFERENCES thebestdbever.shift(shiftid)
+);
 
 DROP FUNCTION IF EXISTS wos_canon_pos;
 
