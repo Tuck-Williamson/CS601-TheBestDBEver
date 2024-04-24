@@ -271,3 +271,82 @@ INSERT INTO thebestdbever.shift(Date, StartTime, Duration)
 
 
 ------------------------------
+
+------------------------------
+-- thebestdbever.customer
+------------------------------
+
+
+BEGIN TRANSACTION;
+
+DELETE
+	FROM thebestdbever.customer
+	WHERE CustomerID IS NOT NULL;
+
+INSERT INTO thebestdbever.customer(LastName, FirstName, PhoneNumber, VIP)
+	VALUES ('Nelson', 'David', '8691494259', 'False'),
+		('Anderson', 'Nathan', '3912545678', 'False'),
+		('Haynes', 'Rachel', '5698844932', 'True'),
+		('Lopez', 'Kevin', '3283851580', 'False'),
+		('Turner', 'Reginald', '6358388358', 'False'),
+		('Mcdaniel', 'Angela', '1667815230', 'False'),
+		('Taylor', 'Jennifer', '7741032155', 'False'),
+		('Alvarado', 'Anthony', '1805370235', 'False'),
+		('Daniels', 'Steven', '3420295714', 'False'),
+		('Williams', 'Christopher', '0327665846', 'True'),
+		('Howard', 'Jeffrey', '9514878866', 'False'),
+		('Weiss', 'Richard', '9177660115', 'False'),
+		('Smith', 'Katherine', '7324367255', 'False'),
+		('Carter', 'Michael', '9409327491', 'False'),
+		('Gordon', 'Spencer', '7885940400', 'False'),
+		('Moore', 'Diane', '0687403788', 'False'),
+		('Johnson', 'Adrienne', '0836197562', 'False'),
+		('Sloan', 'Angel', '2017509676', 'True'),
+		('Walker', 'Heather', '8875540388', 'True'),
+		('Lynch', 'Joshua', '0481442675', 'False'),
+		('Perry', 'Ronald', '2708026434', 'False'),
+		('Valencia', 'Timothy', '3080538670', 'True'),
+		('Bautista', 'Michael', '0043434878', 'False'),
+		('Aguilar', 'John', '5995903301', 'False'),
+		('Simpson', 'Lisa', '3955298900', 'False'),
+		('Hinton', 'Adam', '7915830779', 'False'),
+		('Baxter', 'Leah', '7289668165', 'False'),
+		('Miller', 'Dylan', '5561995558', 'False'),
+		('Williams', 'Jennifer', '5065761885', 'False'),
+		('Baker', 'Sherry', '3769433716', 'False'),
+		('Davis', 'Rebecca', '5864022120', 'False'),
+		('Cummings', 'Donald', '6135724281', 'False'),
+		('Bernard', 'Robert', '1655219250', 'False'),
+		('White', 'Timothy', '8002301423', 'False'),
+		('Diaz', 'Samantha', '0192760353', 'False'),
+		('Williams', 'Tonya', '3586403805', 'False'),
+		('Wood', 'Mary', '3459758867', 'False'),
+		('Lopez', 'Cheryl', '5435127657', 'False'),
+		('Jones', 'Whitney', '3579077332', 'False'),
+		('Fox', 'Deborah', '5599900374', 'False'),
+		('Rodriguez', 'Brandon', '1378532502', 'True'),
+		('Johnson', 'Jennifer', '8183790994', 'False'),
+		('Hobbs', 'Danielle', '9612429510', 'True'),
+		('Thomas', 'Timothy', '9948505281', 'False'),
+		('Garza', 'Courtney', '0624147267', 'False'),
+		('Garcia', 'Sherri', '3887861736', 'False'),
+		('Odom', 'Ryan', '3865589624', 'False'),
+		('Solomon', 'Sandra', '1712283788', 'False'),
+		('Rodriguez', 'Eric', '8796204881', 'True'),
+		('Ruiz', 'Renee', '4823449667', 'True'),
+		('Gonzalez', 'Brandy', '8137355477', 'False'),
+		('Floyd', 'David', '2251148951', 'False'),
+		('Lucero', 'David', '3013039536', 'False'),
+		('Freeman', 'Leah', '5267785275', 'False'),
+		('Horn', 'Maureen', '8561758556', 'True'),
+		('Lozano', 'Jeffrey', '5138247722', 'False'),
+		('Mccoy', 'Cindy', '1862112349', 'False'),
+		('Peterson', 'Jeremy', '6330734310', 'False'),
+		('Hanson', 'Jared', '9873764812', 'False'),
+		('Jackson', 'Justin', '7913981658', 'False')
+        ;
+
+COMMIT TRANSACTION;
+
+
+------------------------------
