@@ -69,7 +69,7 @@ CREATE TABLE works_on_shift
     PRIMARY KEY (shiftid, ssn)
 );
 
-DROP TABLE IF EXISTS thebestdbever.customer;
+DROP TABLE IF EXISTS thebestdbever.customer CASCADE;
 CREATE TABLE customer
 (
     CustomerID SERIAL NOT NULL,
@@ -84,13 +84,13 @@ CREATE TABLE customer
 
 
 -- Create MENU_ITEM Table
-DROP TABLE IF EXISTS thebestdbever.menu_item;
+DROP TABLE IF EXISTS thebestdbever.menu_item CASCADE;
 CREATE TABLE menu_item
 (
     ItemID SERIAL NOT NULL,
     Title varchar(255) NOT NULL,
     Description varchar(255),
-    Active BOOLEAN NOT NULL,
+    Active BOOLEAN NOT NULL DEFAULT TRUE,
     Type varchar(255),
     Allergens varchar(255),
     Price NUMERIC NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE menu_item
     PRIMARY KEY (ItemID)
 );
 
-DROP TABLE IF EXISTS thebestdbever.top;
+DROP TABLE IF EXISTS thebestdbever.top CASCADE;
 CREATE TABLE top
 (
     TopID SERIAL NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE top
 
 );
 
-DROP TABLE IF EXISTS thebestdbever.reservation;
+DROP TABLE IF EXISTS thebestdbever.reservation CASCADE;
 CREATE TABLE reservation
 (
     ReservationID serial NOT NULL,
@@ -134,25 +134,8 @@ CREATE TABLE reservation
 
 );
 
-
--- Create MENU_ITEM Table
-DROP TABLE IF EXISTS thebestdbever.menu_item;
-CREATE TABLE menu_item
-(
-    ItemID SERIAL NOT NULL,
-    Title varchar(255) NOT NULL,
-    Description varchar(255),
-    Active BOOLEAN NOT NULL,
-    Type varchar(255),
-    Allergens varchar(255),
-    Price NUMERIC NOT NULL,
-    Quantity INT,
-
-    PRIMARY KEY (ItemID)
-);
-
 -- Create ORDER_ITEM Table
-DROP TABLE IF EXISTS thebestdbever.order_item;
+DROP TABLE IF EXISTS thebestdbever.order_item CASCADE ;
 CREATE TABLE order_item
 (
     OrderID SERIAL NOT NULL,
