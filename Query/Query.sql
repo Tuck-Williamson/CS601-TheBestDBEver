@@ -138,3 +138,11 @@ SELECT wos.shiftid, COUNT(DISTINCT headposition) as filledPos FROM works_on_shif
         GROUP BY wos.shiftid
 LIMIT 20
 ;
+
+
+
+SELECT *
+FROM works_on_shift
+         JOIN thebestdbever.shift s on s.shiftid = works_on_shift.shiftid
+         JOIN thebestdbever.employee e on e.ssn = works_on_shift.ssn
+WHERE date = insert date;
