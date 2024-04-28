@@ -99,12 +99,17 @@ CREATE TABLE menu_item
     PRIMARY KEY (ItemID)
 );
 
+DROP TYPE IF EXISTS thebestdbever.topType CASCADE;
+CREATE TYPE topType AS ENUM (
+    'Square', 'Round', 'Rectangle'
+    );
+
 DROP TABLE IF EXISTS thebestdbever.top CASCADE;
 CREATE TABLE top
 (
     TopID SERIAL NOT NULL,
     Capacity INT NOT NULL,
-    Type VARCHAR(255) NOT NULL,
+    Type thebestdbever.topType NOT NULL,
 
     PRIMARY KEY(TopID)
 
