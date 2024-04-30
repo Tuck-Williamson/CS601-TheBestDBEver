@@ -1,4 +1,13 @@
--- 10 interesting queries
+-- 15 interesting queries meant to test realistic business cases
+-- To have queries run properly you must first run all schema and insert related scripts
+-- These can be found in the Schema and Insert folders
+-- Then establish a connection to a PostgreSQL database that can store all data
+-- Run queries
+
+
+-- Some of these queries include variables like 'start_time', 'end_time', 'start_day', 'end_day' ect.
+-- You will need to replace these fillers | below each it will be the comment of the query run in documentation
+
 -- 1) List all active menu items with their prices:
 SELECT Title, Price
 FROM thebestdbever.menu_item
@@ -58,6 +67,7 @@ FROM (
                   JOIN thebestdbever.order_item oi ON r.reservationid = oi.ResID
                   JOIN thebestdbever.menu_item mi ON oi.ItemID = mi.ItemID
          WHERE r.Date BETWEEN 'start_date' AND 'end_date'
+         -- 2024-03-01 2024-08-01
          GROUP BY c.CustomerID
      ) AS revenue_per_customer;
 
@@ -109,6 +119,7 @@ FROM (
          SELECT r.TopID, COUNT(DISTINCT r.ReservationID) AS table_turnover
          FROM thebestdbever.reservation r
          WHERE r.Date BETWEEN 'start_date' AND 'end_date'
+         -- 2024-03-01 2024-08-01
          GROUP BY r.TopID
      ) AS table_turnover_rates;
 
@@ -145,4 +156,5 @@ SELECT *
 FROM works_on_shift
          JOIN thebestdbever.shift s on s.shiftid = works_on_shift.shiftid
          JOIN thebestdbever.employee e on e.ssn = works_on_shift.ssn
-WHERE date = '2024-03-01';
+WHERE date = 'insert_date';
+-- 2024-03-01
