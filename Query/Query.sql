@@ -140,9 +140,9 @@ LIMIT 20
 ;
 
 
-
+-- List the employees and what position they worked on each shift of a certain date
 SELECT *
 FROM works_on_shift
          JOIN thebestdbever.shift s on s.shiftid = works_on_shift.shiftid
          JOIN thebestdbever.employee e on e.ssn = works_on_shift.ssn
-WHERE date = insert date;
+WHERE date = '2024-03-01';
